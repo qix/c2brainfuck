@@ -6,6 +6,7 @@ class Fuck(object):
   emptyCells = range(1000,-1,-1)
   position = 0
   comments = False
+  buffer = ""
 
   def __init__(self, output):
     self.output = output
@@ -21,7 +22,15 @@ class Fuck(object):
   def perform(self, command, count=1):
     if not self.comments:
       command = command.replace(" ", '').replace("\n", '')
-    self.output.write(command * count)
+      self.buffer += command * count
+      while len(self.buffer) >= 80:
+        self.output.write(self.buffer[:80]+"\n")
+        self.buffer = self.buffer[80:]
+    else:
+      self.output.write(command * count)
+
+  def close(self):
+    self.output.write(self.buffer+"\n")
 
   def findCells(self, N):
     cells = [

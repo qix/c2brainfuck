@@ -35,4 +35,4 @@ for op, params in opcodes:
   elif op == 'FOR_END': fuck.FOR_END(*params)
   else: raise Exception("Unknown %s" % op)
   
-sys.stdout.write("\n")
+fuck.close()
