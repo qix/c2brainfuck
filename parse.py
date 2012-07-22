@@ -164,14 +164,13 @@ def block():
     statement()
 
 symbols = {}
-stack = []
 
 class Fuck(object):
   symbols = {}
   stack = []
   emptyCells = range(1000,-1,-1)
   position = 0
-  comments = False
+  comments = True
 
   def comment(self, comment, inline=False):
     for letter in comment:
@@ -220,25 +219,25 @@ class Fuck(object):
     '''
     X = X+Y
     '''
-    Y = stack.pop()
-    X = stack.pop()
+    Y = self.stack.pop()
+    X = self.stack.pop()
     self.comment("Set ~%d = ~%d plus ~%d" % (X, X, Y))
     self.execute({'x': X, 'y': Y}, '''
       y[x+y-]
     ''')
-    stack.append(X)
+    self.stack.append(X)
 
   def SUB(self):
     '''
     X = X-Y
     '''
-    Y = stack.pop()
-    X = stack.pop()
+    Y = self.stack.pop()
+    X = self.stack.pop()
     self.comment("Set ~%d = ~%d minus ~%d" % (X, X, Y))
     self.execute({'x': X, 'y': Y}, '''
       y[x-y-]
     ''')
-    stack.append(X)
+    self.stack.append(X)
 
   def COMPARE(self, mode):
     '''
@@ -246,8 +245,8 @@ class Fuck(object):
     # (temp1 is start of 3 cells)
     '''
 
-    Y = stack.pop()
-    X = stack.pop()
+    Y = self.stack.pop()
+    X = self.stack.pop()
     if mode == '<':
       pass
     elif mode == '>':
@@ -265,7 +264,7 @@ class Fuck(object):
       temp0[temp1- [>-]> [< x- temp0[-]+ temp1>->]<+< temp0-]
     ''')
 
-    stack.append(X)
+    self.stack.append(X)
 
 
   def PUSH(self, value):
@@ -275,17 +274,17 @@ class Fuck(object):
       cell[-]
     ''')
     self.perform('+', value)
-    stack.append(cell)
+    self.stack.append(cell)
 
   def SET(self, variable):
     if variable in symbols:
       # Move into the same variable slot
-      self.execute({'source': stack.pop(), 'dest': symbols[variable]}, '''
+      self.execute({'source': self.stack.pop(), 'dest': symbols[variable]}, '''
         dest[-]
         source[-dest+source]
       ''')
     else:
-      symbols[variable] = stack.pop()
+      symbols[variable] = self.stack.pop()
 
   def GET(self, variable):
     cells = {'cell': self.findCells(1), 'source': symbols[variable], 'temp': self.findCells(1)}
@@ -295,18 +294,18 @@ class Fuck(object):
       source[-cell+temp+source]
       temp[-source+temp]
     ''')
-    stack.append(cells['cell'])
+    self.stack.append(cells['cell'])
 
-  def CALL(self, identifier, args):
+  def CALL(self, identifier, argc):
     if identifier == 'print':
-      for k in range(args):
-        cell = stack.pop()
+      argv = self.stack[-argc:]
+      self.stack = self.stack[:-argc]
+      for cell in argv:
         self.comment('Print the value of cell %d' % (cell))
         self.execute({'cell': cell}, 'cell.')
     elif identifier == 'println':
-      self.CALL("print", args)
       self.PUSH(ord('\n'))
-      self.CALL("print")
+      self.CALL("print", argc+1)
 
   def PRINT(self, string):
     cell = self.findCells(1)
@@ -324,7 +323,7 @@ class Fuck(object):
 
   ifStack = []
   def IF_BEGIN(self):
-    testCell = stack.pop()
+    testCell = self.stack.pop()
     temp = self.findCells(2)
     cells = {'x': testCell, 'temp0': temp, 'temp1': temp+1}
     self.execute(cells, '''
@@ -360,7 +359,7 @@ class Fuck(object):
   forStack = []
   def FOR_OPEN(self):
     testCell = self.findCells(1)
-    cells = {'test': testCell, 'source': stack.pop()}
+    cells = {'test': testCell, 'source': self.stack.pop()}
     self.forStack.append(cells)
 
     self.comment("For with source ~%d; test cell ~%d" % (cells['source'], cells['test']))
@@ -376,7 +375,7 @@ class Fuck(object):
 
   def FOR_END(self):
     cells = self.forStack.pop()
-    cells['source'] = stack.pop()
+    cells['source'] = self.stack.pop()
     self.comment("For_END with source ~%d; test cell ~%d" % (cells['source'], cells['test']))
     self.execute(cells, '''
       test[-]
