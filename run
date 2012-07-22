@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+import argparse
+import sys
+from tokenizer import tokenize
+from parser import Parser
+from fuck import Fuck
+
+parser = argparse.ArgumentParser('An interpreter for a C-like language which outputs brainfuck code')
+parser.add_argument('--file', type = argparse.FileType('r'), default = '-')
+
+args = parser.parse_args()
+
+
+tokens = tokenize(args.file.read())
+
+parser = Parser(tokens)
+opcodes = parser.parse()
+
+fuck = Fuck(sys.stdout)
+for op, params in opcodes:
+  if op == 'PUSH': fuck.PUSH(*params)
+  elif op == 'SET': fuck.SET(*params)
+  elif op == 'GET': fuck.GET(*params)
+  elif op == 'ADD': fuck.ADD(*params)
+  elif op == 'SUB': fuck.SUB(*params)
+  elif op == 'CALL': fuck.CALL(*params)
+  elif op == 'COMPARE': fuck.COMPARE(*params)
+  elif op == 'PRINT': fuck.PRINT(*params)
+  elif op == 'PRINTLN': fuck.PRINTLN(*params)
+  elif op == 'IF_BEGIN': fuck.IF_BEGIN(*params)
+  elif op == 'IF_ELSE': fuck.IF_ELSE(*params)
+  elif op == 'IF_END': fuck.IF_END(*params)
+  elif op == 'FOR_OPEN': fuck.FOR_OPEN(*params)
+  elif op == 'FOR_CLOSE': fuck.FOR_CLOSE(*params)
+  elif op == 'FOR_END': fuck.FOR_END(*params)
+  else: raise Exception("Unknown %s" % op)
+  
+sys.stdout.write("\n")
