@@ -51,7 +51,7 @@ class Fuck(object):
     self.perform(perform)
 
   def execute(self, cells, code):
-    for piece in re.findall(r'[a-z0-9]+|[^a-z0-9]+', code):
+    for piece in re.findall(r'[a-zA-Z0-9]+|[^a-zA-Z0-9]+', code):
       if piece in cells:
         self.moveToCell(cells[piece])
       else:
@@ -61,6 +61,78 @@ class Fuck(object):
     self.perform('+', ord('0'))
     self.perform('.')
     self.perform('-', ord('0'))
+
+  randomCells = None
+  def pushRandom(self):
+    if not self.randomCells:
+      self.randomCells = {
+          'x': self.findCells(1),
+          'temp0': self.findCells(1),
+          'temp1': self.findCells(2),
+          'temp2': self.findCells(3),
+          'temp3': self.findCells(4),
+          'temp4': self.findCells(5),
+          'temp5': self.findCells(6),
+          'randomh': self.findCells(6),
+          'randoml': self.findCells(6),
+          }
+    self.execute(self.randomCells, '''
+      x[-]
+      temp0[-]
+      temp1[-]
+      temp2[-]
+      temp3[-]
+      temp4[-]
+      temp5[-]
+      randomh[temp0+randomh-]
+      randoml[temp1+randoml-]
+      temp3+++++++[temp2+++++++++++@temp3-]
+      temp2[
+      temp0[randomh+temp3+temp0-]
+      temp3[temp0+temp3-]
+      temp1[randomh+temp3+temp4+temp1-]
+      temp4[temp1+temp4-]
+      temp3[
+        randoml+[temp4+temp5+randoml-]
+        temp5[randoml+temp5-]+
+        temp4[temp5-temp4[-]]
+        temp5[randomh+temp5-]
+      temp3-]
+      temp2-]
+      ++++++[temp3++++++++temp2-]
+      temp3-[
+      temp1[randomh+temp2+temp1-]
+      temp2[temp1+temp2-]
+      temp3-]
+      temp0[-]temp1[-]+++++[temp0+++++temp1-]
+      temp0[
+      randoml+[temp1+temp2+randoml-]
+      temp2[randoml+temp2-]+
+      temp1[temp2-temp1[-]]
+      temp2[randomh+temp2-]
+      temp0-]
+      ++++++[randomh+++++++++temp0-]
+      randomh[x+temp0+randomh-]
+      temp0[randomh+temp0-]
+    ''')
+    self.stack.append(self.randomCells['x'])
+
+  def MOD(self):
+    '''
+    = X%Y
+    '''
+    X = self.stack.pop()
+    Y = self.stack.pop()
+    TEMP = self.findCells(5)
+
+    self.execute({'x':X, 'y':Y, 'inX': TEMP, 'inY': TEMP+1, 'temp': TEMP}, '''
+      temp[-]>[-]>[-]>[-]>[-]<<<<
+      x[-inX+x]
+      y[-inY+y]
+      temp[->-[>+>>]>[+[-<+>]>+>>]<<<<<]
+    ''')
+
+    self.stack.append(TEMP+1)
 
   def ADD(self):
     '''
@@ -153,6 +225,9 @@ class Fuck(object):
     elif identifier == 'println':
       self.PUSH(ord('\n'))
       self.CALL("print", argc+1)
+    else:
+      self.pushRandom()
+
 
   def PRINT(self, string):
     cell = self.findCells(1)

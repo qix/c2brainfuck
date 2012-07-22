@@ -23,6 +23,7 @@ for op, params in opcodes:
   elif op == 'GET': fuck.GET(*params)
   elif op == 'ADD': fuck.ADD(*params)
   elif op == 'SUB': fuck.SUB(*params)
+  elif op == 'MOD': fuck.MOD(*params)
   elif op == 'CALL': fuck.CALL(*params)
   elif op == 'COMPARE': fuck.COMPARE(*params)
   elif op == 'PRINT': fuck.PRINT(*params)

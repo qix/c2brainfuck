@@ -5,10 +5,10 @@ from contextlib import contextmanager
 from tokenizer import T_IDENT, T_COMPARE, T_OP, T_STRING, T_NUMBER, T_CHAR
 
 class ExpectedException(BaseException):
-  def __init__(self, expected):
+  def __init__(self, tokens, expected):
     self.expected = expected
-    self.token = self.tokens[0]
-    self.remaining = ''.join([x.getString() for x in self.tokens])[:50]
+    self.token = tokens[0]
+    self.remaining = ''.join([x.getString() for x in tokens])[:50]
 
   def __str__(self):
     return "Expected %s, got %s(%s) near %s" % (self.expected, self.token.__class__.__name__, self.token.getString(), self.remaining)
@@ -25,10 +25,10 @@ class Parser(object):
 
   def expect(self ,cls, val=None):
     if not isinstance(self.tokens[0], cls):
-      raise ExpectedException("%s(%s)" % (cls.__name__, val))
+      raise ExpectedException(self.tokens, "%s(%s)" % (cls.__name__, val))
     if val is not None:
       if self.tokens[0].getString() != val:
-        raise ExpectedException(val)
+        raise ExpectedException(self.tokens, val)
     self.pop()
 
 
@@ -50,13 +50,36 @@ class Parser(object):
       self.do("PUSH", ord(token.getChar()))
       self.pop()
     elif self.isa(T_IDENT):
-      self.do("GET", token.getString())
       self.pop()
+
+      if self.isa(T_OP, '('):
+        self.pop()
+        args = 0
+        if not self.isa(T_OP, ')'):
+          self.expression()
+          args += 1
+        while self.isa(T_OP, ','):
+          self.pop()
+          self.expression()
+          args += 1
+        self.do("CALL", token.getString(), args)
+        self.expect(T_OP, ')')
+      else:
+        self.do("GET", token.getString())
     else:
-      raise ExpectedException("value")
+      raise ExpectedException(self.tokens, "value")
+
+  def factor(self):
+    self.value()
+
+    token = self.tokens[0]
+    if self.isa(T_OP, '%'):
+      self.pop()
+      self.expression()
+      self.do("MOD")
 
   def expression(self):
-    self.value()
+    self.factor()
 
     token = self.tokens[0]
     if self.isa(T_COMPARE):
@@ -141,8 +164,10 @@ class Parser(object):
         if token.getString() in ('print', 'println') and self.isa(T_STRING):
           self.do(token.getString().upper(), self.pop().getValue())
         else:
-          args = 1
-          self.expression()
+          args = 0
+          if not self.isa(T_OP, ')'):
+            self.expression()
+            args += 1
           while self.isa(T_OP, ','):
             self.pop()
             self.expression()
@@ -151,10 +176,10 @@ class Parser(object):
         self.expect(T_OP, ')')
 
       else:
-        raise ExpectedException("=, (, or comparison")
+        raise ExpectedException(self.tokens, "=, (, or comparison")
 
     else:
-      raise ExpectedException("identifier")
+      raise ExpectedException(self.tokens, "identifier")
 
   def block(self):
     while self.tokens and not self.isa(T_OP, '}'):
